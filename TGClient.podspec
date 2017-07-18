@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/threadgenius/thread-genius-swift.git, :tag => "#{s.version}" }
 
 
-  s.source_files  = "TGClient", "TGClient/**/*.{h,m}"
+  s.source_files  = "TGClient", "TGClient/**/*.{h}"
 
   s.pod_target_xcconfig = { 'SWIFT_VERSION' => '3' }
 

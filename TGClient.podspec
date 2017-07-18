@@ -13,7 +13,7 @@ Pod::Spec.new do |s|
   # s.platform     = :ios
   s.platform     = :ios, "10.0"
 
-  s.source       = { :git => "https://github.com/theostrauss/TGClient.git", :tag => "#{s.version}" }
+  s.source       = { :git => "https://github.com/threadgenius/thread-genius-swift.git, :tag => "#{s.version}" }
 
 
   s.source_files  = "TGClient", "TGClient/**/*.{h,m}"

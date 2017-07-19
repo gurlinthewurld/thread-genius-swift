@@ -7,7 +7,7 @@ target 'TGClient' do
 
   # Pods for TGClient
     pod 'Alamofire', '4.4.0'
-
+    pod 'SwiftyJSON'
 
   target 'TGClientTests' do
     inherit! :search_paths

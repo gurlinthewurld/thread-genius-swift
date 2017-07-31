@@ -42,7 +42,7 @@ $ pod install
 With TGClient, you can interact with Thread Genius’ API in the following ways:
 First, start by creating an instance of the class ThreadGenius in your ViewController. To use the Thread Genius API, you will need a key that is provided to you. Once you have acquired one, you can initialize the class like this:
 ```
-let tg = ThreadGenius(key: “myKey”)
+let tg = ThreadGenius(key: "myKey")
 ```
 From there, you can interact with every function the API has to offer.
 
@@ -51,12 +51,12 @@ From there, you can interact with every function the API has to offer.
 #### Create a new empty catalog:
 First, create an instance of the `TGCatalog` struct. You can either initialize `TGCatalog` with a name, or a GID.
 ```swift
-let catalogInstance = TGCatalog(name: “myFirstCatalog”)
+let catalogInstance = TGCatalog(name: "myFirstCatalog")
 ```
 Or
 ```swift
 
-let catalogInstance = TGCatalog(gid: “catalog1”)
+let catalogInstance = TGCatalog(gid: "catalog1")
 ```
 Then, you can create the catalog and submit a request by using:
 ```swift
@@ -72,13 +72,13 @@ tg.listAllCatalogs()
 #### Get a catalog:
 To get a catalog you can use the `getCatalog()` function with the name or GID of your catalog as the paramter as such:
 ```swift
-tg.getCatalog(name: “myFirstCatalog”)
+tg.getCatalog(name: "myFirstCatalog")
 ```
 
 #### Delete a catalog:
 Simply use the delete function with the name or GID of your catalog like below:
 ```swift
-tg.deleteCatalog(name: “myFirstCatalog”)
+tg.deleteCatalog(name: "myFirstCatalog")
 ```
 
 #### Add objects to a catalog:
@@ -88,7 +88,7 @@ let object = TGObject(image: imageInstance, metadata: yourMetadata)
 ```
 You’ll notice that the image the object requires is a `TGImage`. You can easily create one with an instance of the `TGImage` struct. There are two initializations of `TGImage` for your convenience. Both require you to provide a crop which can be given as a `CGRect`, but then you have your choice if you want to provide a URL to your image or the `UIImage` itself. You can create the instance like below:
 ```swift
-let imageInstance = TGImage(image: “http://yourdomain.com/image.jpg”, crop: CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height) 
+let imageInstance = TGImage(image: "http://yourdomain.com/image.jpg", crop: CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height) )
 ```
 You’ll also notice that you can supply optional metadata per object, which you provide in the form of a dictionary.:
 ```swift
@@ -118,7 +118,7 @@ tg.searchFor(keywords: keywordsInstance)
 
 To provide keywords, one needs to provide an instance of the `TGKeywords` struct. A `TGKeywords` struct is made up of an array of strings. To create one, follow the example below:
 ```swift
-let keywordsInstace = TGKeywords(keywords: [“red”, “dress”, “stripes])
+let keywordsInstace = TGKeywords(keywords: ["red", "dress", "stripes"])
 ```
 
 ### Prediction:
@@ -131,11 +131,11 @@ tg.tagImage(image: imageInstance, completionHandler: yourCompletionHandlerHere)
 ```
 The image the function calls for is a `TGImage`. You can easily create one with an instance of the `TGImage` struct. There are two initializations of `TGImage` for your convenience. Both require you to provide a crop which can be given as a `CGRect`, but then you have your choice if you want to provide a URL to your image or the `UIImage` itself. You can create the instance like below:
 ```swift
-let imageInstance = TGImage(image: “http://yourdomain.com/image.jpg”, crop: CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height) 
+let imageInstance = TGImage(image: "http://yourdomain.com/image.jpg", crop: CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height) )
 ```
 Or
 ```swift
-let imageInstance = TGImage(image: UIImage(named: “image”, crop: CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height)
+let imageInstance = TGImage(image: UIImage(named: "image", crop: CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height))
 ```
 After calling the function, it will return an array of `TGTag` structs which have two properties: name and confidence. Name is a string that describes what the tag is of and confidence is a float that tells you the accuracy of the tag. 
 
@@ -146,10 +146,10 @@ tg.detectBoxes(image: imageInstance, completionHandler: yourCompletionHandlerHer
 ```
 The image the function calls for is a `TGImage`. You can easily create one with an instance of the `TGImage` struct. There are two initializations of `TGImage` for your convenience. Both require you to provide a crop which can be given as a `CGRect`, but then you have your choice if you want to provide a URL to your image or the `UIImage` itself. You can create the instance like below:
 ```swift
-let imageInstance = TGImage(image: “http://yourdomain.com/image.jpg”, crop: CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height) 
+let imageInstance = TGImage(image: "http://yourdomain.com/image.jpg", crop: CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height)) 
 ```
 Or
 ```swift
-let imageInstance = TGImage(image: UIImage(named: “image”, crop: CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height)
+let imageInstance = TGImage(image: UIImage(named: "image", crop: CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height))
 ```
 The function returns a `TGBox` struct which is made up of an array of `CGRect`'s. The `CGRect` tells you the coordinates and size of the box for you to interact with. 

@@ -18,7 +18,7 @@ A Swift client for the Thread Genius API.
 
 ### Cocoapods
 Cocoapods is a dependency manager for Cocoa projects. You can install it with the following command:
-```
+```bash
 $ gem install cocoapods
 ```
 To integrate TGClient into your Xcode project using CocoaPods, specify it in your `Podfile`:
@@ -34,14 +34,14 @@ end
 ```
 
 Then, run the following command:
-```
+```bash
 $ pod install
 ```
 
 ## Usage
 With TGClient, you can interact with Thread Genius’ API in the following ways:
 First, start by creating an instance of the class ThreadGenius in your ViewController. To use the Thread Genius API, you will need a key that is provided to you. Once you have acquired one, you can initialize the class like this:
-```
+```swift
 let tg = ThreadGenius(key: "myKey")
 ```
 From there, you can interact with every function the API has to offer.

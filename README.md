@@ -49,34 +49,24 @@ From there, you can interact with every function the API has to offer.
 ### Catalogs
 
 #### Create a new empty catalog:
-First, create an instance of the `TGCatalog` struct. You can either initialize `TGCatalog` with a name, or a GID.
+First, create an instance of the `TGCatalog` struct. You can initialize `TGCatalog` with a name.
 ```swift
 let catalogInstance = TGCatalog(name: "myFirstCatalog")
-```
-Or
-```swift
-
-let catalogInstance = TGCatalog(gid: "catalog1")
 ```
 Then, you can create the catalog and submit a request by using:
 ```swift
 tg.createCatalog(catalogInstance)
 ```
-
+After creating a catalog, an array of TGCatalogs will be returned with your catalog inside along with the JSON response detailing the GID.
 #### List all catalogs:
 To list all catalogs use the function:
 ```swift
 tg.listAllCatalogs()
 ```
-
-#### Get a catalog:
-To get a catalog you can use the `getCatalog()` function with the name or GID of your catalog as the paramter as such:
-```swift
-tg.getCatalog(name: "myFirstCatalog")
-```
+A JSON response will then be printed.
 
 #### Delete a catalog:
-Simply use the delete function with the name or GID of your catalog like below:
+Simply use the delete function with the name of your catalog like below:
 ```swift
 tg.deleteCatalog(name: "myFirstCatalog")
 ```

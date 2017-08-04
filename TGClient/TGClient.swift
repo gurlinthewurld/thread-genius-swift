@@ -24,24 +24,27 @@ public struct TGImage: Codable {
         self.crop = crop.toCropArray()
     }
     
-    public init(base64: String, crop: CGRect) {
-        self.base64 = base64
+    public init(image: UIImage, crop: CGRect) {
+        let imageData: Data = UIImageJPEGRepresentation(image, 0.1)!
+        let dataString = imageData.base64EncodedString()
+        print(dataString.characters.count)
+        self.base64 = dataString
         self.crop = crop.toCropArray()
     }
 }
 
 //MARK: -Definition of TGCatalog
 public struct TGCatalog: Codable {
-    var gid: String? //question mark because the user could use a gid OR name
-    var name: String? //question mark because the user could use a gid OR name
-    
-    //two init functions so that the user can use TGCatalog with a gid OR a name
-    public init(gid: String) {
-        self.gid = gid
-    }
+    var gid: String?
+    var name: String?
     
     public init(name: String) {
         self.name = name
+    }
+    
+    internal init(name: String, gid: String) {
+        self.name = name
+        self.gid = gid
     }
 }
 
@@ -54,26 +57,33 @@ public struct TGKeywords: Codable {
     }
 }
 
-public struct TGMetadata: Codable {
-    var brand: String
-    var hashtags: [String]
-    
-    public init(brand: String, hashtags: [String]) {
-        self.brand = brand
-        self.hashtags = hashtags
-    }
-}
-
 public struct TGObject: Codable {
-    var metadata: TGMetadata
+    var metadata: [String : String]
     var image: TGImage
     
-    public init(image: TGImage, metadata: TGMetadata) {
+    public init(image: TGImage, metadata: [String : String]) {
         self.image = image
         self.metadata = metadata
     }
 }
 
+public struct TGTag {
+    public var name: String
+    public var confidence: Float
+    
+    public init(name: String, confidence: Float) {
+        self.name = name
+        self.confidence = confidence
+    }
+}
+
+public struct TGBox {
+    public var boxRect: CGRect
+    
+    init(boxRect: CGRect) {
+        self.boxRect = boxRect
+    }
+}
 
 public class ThreadGenius {
     
@@ -90,35 +100,195 @@ public class ThreadGenius {
     }
     
     //MARK: -Search a catalog by keywords
-    public func searchBy(keywords: TGKeywords) {
+    public func searchFor(keywords: TGKeywords) {
         //communicate with their servers
     }
     
     //MARK: CATALOGS
     
     //MARK: -Create a new empty catalog
-    public func createCatalog(name: TGCatalog) {
-        //communicate with their servers
-    }
     
+    public func createCatalog(catalog: TGCatalog, completionHandler: @escaping (_ catalogsCreated: [TGCatalog], _ error: Error?) -> ()) {
+        
+        let user = "key_wcjRv0QAVgeO0ZAeq0W83tZHrIH1Y70U"
+        let password = ""
+        
+        var headers: HTTPHeaders = ["Content-Type" : "application/json"]
+        
+        if let authorizationHeader = Request.authorizationHeader(user: user, password: password) {
+            headers[authorizationHeader.key] = authorizationHeader.value
+        } else {
+            fatalError()
+        }
+        
+        let encoder = JSONEncoder()
+        if let encodedCatalog = try? encoder.encode(catalog), let jsonCatalogString = String(data: encodedCatalog, encoding: .utf8) {
+            
+            let validJSONCatalogString = "{\"catalog\": "+jsonCatalogString+"}"
+            print("hello", validJSONCatalogString)
+            
+            let validEncodedCatalog = validJSONCatalogString.data(using: .utf8)!
+            var request = URLRequest(url: URL(string: "http://api-dev.threadgenius.co/v1/catalog")!)
+            request.httpMethod = "POST"
+            request.allHTTPHeaderFields = headers
+            request.httpBody = validEncodedCatalog
+            
+            Alamofire.request(request).responseJSON { response in
+                switch response.result {
+                case .success(let value):
+                    let json = JSON(value)
+                    
+                    let someRequest = Alamofire.request(request).responseJSON
+                    debugPrint("debug print:", someRequest, "end")
+                    print(json)
+                    print(json["status"]["description"].string ?? "")
+                    if json["status"]["description"].string ?? "" == "Invalid API key." {
+                        completionHandler([], TGRequestError.invalidCredentials)
+                        return
+                    }
+                    
+                    var catalogsArray = [TGCatalog]()
+                    
+                    if json["status"]["description"].string ?? "" == "OK" && json["response"]["catalog"]["status"]["description"].string ?? "" == "OK"{
+                        var catalogStruct = TGCatalog(name: json["response"]["catalog"]["name"].string ?? "", gid: json["response"]["catalog"]["gid"].string ?? "")
+                        catalogsArray.append(catalogStruct)
+                    }
+                    
+                    completionHandler(catalogsArray, nil)
+                    return
+                case .failure(let error):
+                    completionHandler([], error)
+                    return
+                }
+            }
+        } else {
+            //tgcatalog object is not serializable
+            completionHandler([], TGRequestError.invalidDataInput)
+            print("TGClient: ERROR - TGCatalog is not serializable. Your TGCatalog was not able to be handled by the server. Please check your TGCatalog initialization to see if the syntax or string provided is correct.")
+        }
+    }
+
     //MARK: -List all catalogs
     public func listAllCatalogs() {
-        //communicate with their servers
+        
+        let user = "key_wcjRv0QAVgeO0ZAeq0W83tZHrIH1Y70U"
+        let password = ""
+        
+        var headers: HTTPHeaders = ["Content-Type" : "application/json"]
+        
+        if let authorizationHeader = Request.authorizationHeader(user: user, password: password) {
+            headers[authorizationHeader.key] = authorizationHeader.value
+        } else {
+            fatalError()
+        }
+        
+        var request = URLRequest(url: URL(string: "http://api-dev.threadgenius.co/v1/catalog")!)
+        request.allHTTPHeaderFields = headers
+        request.httpMethod = "GET"
+        
+        Alamofire.request(request).responseJSON { response in
+            switch response.result {
+            case .success(let value):
+                let json = JSON(value)
+                
+                let catalogsJSON = json["response"]["catalogs"]
+                let catalogs = catalogsJSON.array ?? [] //?? = if its nil, do this -> []
+                var catalogArray = [TGCatalog]()
+                var catalogCount = 0
+                
+                for catalog in catalogs {
+                    let catalogStruct = TGCatalog(name: catalog["name"].string!)
+                    catalogArray.append(catalogStruct)
+                    catalogCount += 1
+                }
+                
+                print(json)
+                print("TGClient: You have \(catalogCount) catalogs associated under your user key.")
+                print("TGClient: Your catalogs are \(catalogArray).")
+                
+                return
+            case .failure(let error):
+                return
+            }
+        }
     }
     
     //MARK: -Delete a catalog
-    public func deleteCatalog(gid: String) {
-        //communicate with their servers
-    }
-    
-    //MARK: -Clear a catalog
-    public func clearCatalog(gid: String) {
-        //communicate with their servers
+    public func deleteCatalog(catalog: TGCatalog) {
+        
+        let user = "key_wcjRv0QAVgeO0ZAeq0W83tZHrIH1Y70U"
+        let password = ""
+        
+        var headers: HTTPHeaders = ["Content-Type" : "application/json"]
+        
+        if let authorizationHeader = Request.authorizationHeader(user: user, password: password) {
+            headers[authorizationHeader.key] = authorizationHeader.value
+        } else {
+            fatalError()
+        }
+        
+        let endpoint: String = "http://api-dev.threadgenius.co/v1/catalog/\(catalog.gid)"
+        
+        Alamofire.request(endpoint, method: .delete)
+            .responseJSON { response in
+                if let error = response.result.error {
+                    print("TGClient: ERROR - TGCatalog was not able to be deleted. Please check your TGCatalog initialization to see if the syntax or string provided is correct and then try again.")
+                    print(error)
+                } else {
+                    print("TGClient: TGCatalog was deleted successfully.")
+                }
+        }
     }
     
     //MARK: -Add an object to a catalog
-    public func addObject(object: TGObject, in catalog: TGCatalog) {
-        //communicate with their servers
+    public func add(object: TGObject, to catalog: TGCatalog) {
+                let user = "key_wcjRv0QAVgeO0ZAeq0W83tZHrIH1Y70U"
+                let password = ""
+        
+                var headers: HTTPHeaders = ["Content-Type" : "application/json"]
+        
+                if let authorizationHeader = Request.authorizationHeader(user: user, password: password) {
+                    headers[authorizationHeader.key] = authorizationHeader.value
+                } else {
+                    fatalError()
+                }
+        
+                let encoder = JSONEncoder()
+                //issue: this only encodes the contents of the struct, not the name. how will we know the name before they create it so we can wrap the encodedString in the name to make it legit
+                if let encodedCatalog = try? encoder.encode(object), let jsonCatalogString = String(data: encodedCatalog, encoding: .utf8) {
+                    
+                    let validJSONCatalogString = "{\"objects\": "+jsonCatalogString+"}"
+                    print("hello", validJSONCatalogString)
+                    
+                    let validEncodedCatalog = validJSONCatalogString.data(using: .utf8)!
+                    var request = URLRequest(url: URL(string: "http://api-dev.threadgenius.co/v1/catalog/\(catalog.gid)/object")!)
+                    request.httpMethod = "POST"
+                    request.allHTTPHeaderFields = headers
+                    request.httpBody = validEncodedCatalog
+                    
+                    Alamofire.request(request).responseJSON { response in
+                        switch response.result {
+                        case .success(let value):
+                            let json = JSON(value)
+                            
+                            let someRequest = Alamofire.request(request).responseJSON
+                            debugPrint("debug print:", someRequest, "end")
+                            print(json)
+                            print(json["status"]["description"].string ?? "")
+                            if json["status"]["description"].string ?? "" == "Invalid API key." {
+                                return
+                            }
+                            
+                            
+                            return
+                        case .failure(let error):
+                            return
+                        }
+                    }
+                } else {
+                    //tgcatalog object is not serializable
+                    print("TGClient: ERROR - TGCatalog is not serializable. Your TGCatalog was not able to be handled by the server. Please check your TGCatalog initialization to see if the syntax or string provided is correct.")
+                }
     }
     
     //MARK: -Delete an object from a catalog
@@ -129,7 +299,13 @@ public class ThreadGenius {
     //MARK: PREDICTION
     
     //MARK: -Predict tags via image
-    public func tagImage(image: TGImage) {
+    public enum TGRequestError: Error {
+        case invalidCredentials
+        case invalidDataInput
+    }
+    
+    //                         i pass in completionHandler and that handles what happens after the stuff runs
+    public func tagImage(image: TGImage, completionHandler: @escaping (_ tags: [TGTag], _ error: Error?) -> ()) {
         
         let user = "key_wcjRv0QAVgeO0ZAeq0W83tZHrIH1Y70U"
         let password = ""
@@ -139,68 +315,138 @@ public class ThreadGenius {
         if let authorizationHeader = Request.authorizationHeader(user: user, password: password) {
             headers[authorizationHeader.key] = authorizationHeader.value
         } else {
-            //indicate credentials are somehow wrong
-            return
+            fatalError()
         }
         
         let encoder = JSONEncoder()
         if let encodedImage = try? encoder.encode(image), let jsonImageString = String(data: encodedImage, encoding: .utf8) {
+            
             let validJSONImageString = "{\"image\": "+jsonImageString+"}"
-            print("hello: \(validJSONImageString)")
+            print("hello", validJSONImageString)
+            
+            
             let validEncodedImage = validJSONImageString.data(using: .utf8)!
-            // use `jsonImage` somewhere
             var request = URLRequest(url: URL(string: "http://api-dev.threadgenius.co/v1/prediction/tag")!)
             request.httpMethod = "POST"
             request.allHTTPHeaderFields = headers
             request.httpBody = validEncodedImage
             
-            print("hi: \(request)")
-            
+            //they have their own completionHandler (response), so we use that instead
             Alamofire.request(request).responseJSON { response in
                 switch response.result {
                     case .success(let value):
                         let json = JSON(value)
-                        print("JSON: \(json)")
-                    
-                        let tagsJSON: JSON = json[0]["response"]["prediction"]["data"]["features"]["tags"]
-                        let tags = tagsJSON.array
                         
-                        var tagConfidence: JSON = json[0]["response"]["prediction"]["data"]["features"]["tags"]["confidence"]
-                        var tagName: JSON = json[0]["response"]["prediction"]["data"]["features"]["tags"]["name"]
-                        var tagType: JSON = json[0]["response"]["prediction"]["data"]["features"]["tags"]["type"]
-                        let confidence = tagConfidence.string
-                        let name = tagName.string
-                        let type = tagType.string
-                    
-                        let confidenceArray = [confidence]
-                        let nameArray = [name]
-                        let typeArray = [type]
-                    
-                        print("here it is confidence \(confidenceArray)")
-                        print("here it is name \(nameArray)")
-                        print("here it is type \(typeArray)")
-                    
+                        let someRequest = Alamofire.request(request).responseJSON
+                        debugPrint("debug print:", someRequest, "end")
+                        print(json)
+                        print(json["status"]["description"].string ?? "")
+                        if json["status"]["description"].string ?? "" == "Invalid API key." {
+                            completionHandler([], TGRequestError.invalidCredentials)
+                            return
+                        }
+                        
+                        let tagsJSON = json["response"]["prediction"]["data"]["tags"]
+                        let tags = tagsJSON.array ?? [] //?? = if its nil, do this -> []
+                        var tagsArray = [TGTag]()
+                        
+                        for tag in tags {
+                            var tagStruct = TGTag(name: tag["name"].string!, confidence: tag["confidence"].float!)
+                            tagsArray.append(tagStruct)
+                        }
+                        completionHandler(tagsArray, nil)
+                        return
                     case .failure(let error):
-                        print(error)
+                        completionHandler([], error)
+                        return
                 }
             }
         } else {
             //tgimage object is not serializable
+            completionHandler([], TGRequestError.invalidDataInput)
+            print("TGClient: ERROR - TGImage is not serializable. Your TGImage was not able to be handled by the server. Please check your TGImage initialization to see if the URL provided or the Base64 string provided is correct.")
         }
     }
     
-    //MARK: -Predict tags via image URLs
-    public func tagImages(images: [TGImage]) {
-        //communicate with their servers
-    }
-    
     //MARK: -Predict bounding boxes via image
-    public func detectBoxes(image: TGImage) {
-        //communicate with their servers
-    }
-    
-    public func getPredictions() {
-        //communicate with their servers
+    public func detectBoxes(view: CGSize, image: TGImage, completionHandler: @escaping (_ boxes: [TGBox], _ error: Error?) -> ()) {
+        
+        let user = "key_wcjRv0QAVgeO0ZAeq0W83tZHrIH1Y70U"
+        let password = ""
+        
+        var headers: HTTPHeaders = ["Content-Type" : "application/json"]
+        
+        if let authorizationHeader = Request.authorizationHeader(user: user, password: password) {
+            headers[authorizationHeader.key] = authorizationHeader.value
+        } else {
+            fatalError()
+        }
+        
+        let encoder = JSONEncoder()
+        if let encodedImage = try? encoder.encode(image), let jsonImageString = String(data: encodedImage, encoding: .utf8) {
+            let validJSONImageString = "{\"image\": " + jsonImageString + "}"
+            print("hello", validJSONImageString)
+            
+            let validEncodedImage = validJSONImageString.data(using: .utf8)!
+            var request = URLRequest(url: URL(string: "http://184.72.118.73/v1/prediction/detect")!)
+            request.httpMethod = "POST"
+            request.allHTTPHeaderFields = headers
+            request.httpBody = validEncodedImage
+            print("hi im here")
+            //they have their own completionHandler (response), so we use that instead
+            Alamofire.request(request).responseJSON { response in
+                switch response.result {
+                    case .success(let value):
+                        let json = JSON(value)
+                        print("request", request)
+                        print(json)
+                        print(json["status"]["description"].string ?? "")
+                        if json["status"]["description"].string ?? "" == "Invalid API key." {
+                        completionHandler([], TGRequestError.invalidCredentials)
+                        return
+                        }
+                        
+                        let detections = json["response"]["prediction"]["data"]["detections"].array ?? []
+                        var boxesArray = [TGBox]()
+                        
+                        for detection in detections {
+                            let boxesJSON = detection["bbox"]
+                            
+                            let boxes = boxesJSON.array ?? [] //?? = if its nil, do this -> []
+                            
+                            let one = boxes[0]
+                            let two = boxes[1]
+                            let three = boxes[2]
+                            let four = boxes[3]
+                            
+                            //TODO: change this to imageWidth and imageHeight of original for real
+                            let x1 = (CGFloat(one.floatValue)) * (view.width)
+                            let y1 = (CGFloat(two.floatValue)) * (view.height)
+                            let x2 = (CGFloat(three.floatValue)) * (view.width)
+                            let y2 = (CGFloat(four.floatValue)) * (view.height)
+                            
+                            let width = (x2 - x1)
+                            let height = (y2 - y1)
+                            
+                            let rect = CGRect(x: x1, y: y1, width: width, height: height)
+                            var boxesStruct = TGBox(boxRect: rect)
+                            boxesArray.append(boxesStruct)
+                            
+                        }
+                        
+                        completionHandler(boxesArray, nil)
+                        return
+                    case .failure(let error):
+                        completionHandler([], error)
+                    return
+                }
+            }
+        } else {
+            //tgimage object is not serializable
+            print("uh oh")
+            completionHandler([], TGRequestError.invalidDataInput)
+            print("TGClient: ERROR - TGImage is not serializable. Your TGImage was not able to be handled by the server. Please check your TGImage initialization to see if the URL provided or the Base64 string provided is correct.")
+        }
     }
     
     private var key: String
@@ -208,8 +454,6 @@ public class ThreadGenius {
         self.key = key
     }
 }
-
-
 
 
 //MARK: MAKE CGRECT CODABLE

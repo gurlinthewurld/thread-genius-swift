@@ -132,7 +132,7 @@ After calling the function, it will return an array of `TGTag` structs which hav
 #### Detect bounding boxes via image URL or UIImage:
 To detect bounding boxes in an image, you can use the function below:
 ```swift
-tg.detectBoxes(image: imageInstance, completionHandler: yourCompletionHandlerHere)
+tg.detectBoxes(view: size, image: imageInstance, completionHandler: yourCompletionHandlerHere)
 ```
 The image the function calls for is a `TGImage`. You can easily create one with an instance of the `TGImage` struct. There are two initializations of `TGImage` for your convenience. Both require you to provide a crop which can be given as a `CGRect`, but then you have your choice if you want to provide a URL to your image or the `UIImage` itself. You can create the instance like below:
 ```swift
@@ -141,5 +141,9 @@ let imageInstance = TGImage(image: "http://yourdomain.com/image.jpg", crop: CGRe
 Or
 ```swift
 let imageInstance = TGImage(image: UIImage(named: "image", crop: CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height))
+```
+It also calls for a `CGSize`. The `CGSize` variable is the size of the view you want to display the boxes on top of. One example of what this `CGSize` variable could be is the screen size of the view controller. This would adapt the boxes to appear in the bounds of a device's screen. You can declare it like this:
+```swift
+let size = CGSize(width: self.view.bounds.width, height: self.view.bounds.height)
 ```
 The function returns a `TGBox` struct which is made up of an array of `CGRect`'s. The `CGRect` tells you the coordinates and size of the box for you to interact with. 
